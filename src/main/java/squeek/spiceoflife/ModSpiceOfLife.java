@@ -1,8 +1,7 @@
 package squeek.spiceoflife;
 
-import java.io.File;  // 添加这行
+import java.io.File;
 
-import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.Mod.Instance;
@@ -21,7 +20,7 @@ public class ModSpiceOfLife
 
     @Instance(ModInfo.MODID)
     public static ModSpiceOfLife instance;
-    public File sourceFile;  // 现在可以找到 File 类了
+    public File sourceFile;
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event)
@@ -35,7 +34,7 @@ public class ModSpiceOfLife
     {
         GuiHelper.init();
         MovementHelper.init();
-        MinecraftForge.EVENT_BUS.register(new FoodContainerHandler());
+        // FoodContainerHandler 已删除，不再注册
     }
 
     @EventHandler
