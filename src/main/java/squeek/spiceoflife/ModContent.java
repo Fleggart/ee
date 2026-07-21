@@ -18,10 +18,11 @@ public class ModContent
     @SubscribeEvent
     public static void registerItems(RegistryEvent.Register<Item> event)
     {
-        lunchBox = new ItemFoodContainer(ModConfig.ITEM_LUNCH_BOX_NAME, 6);
+        // 从配置读取格子数量
+        lunchBox = new ItemFoodContainer(ModConfig.ITEM_LUNCH_BOX_NAME, ModConfig.LUNCHBOX_SLOTS);
         event.getRegistry().register(lunchBox);
 
-        lunchBag = new ItemFoodContainer(ModConfig.ITEM_LUNCH_BAG_NAME, 3);
+        lunchBag = new ItemFoodContainer(ModConfig.ITEM_LUNCH_BAG_NAME, ModConfig.LUNCHBAG_SLOTS);
         event.getRegistry().register(lunchBag);
     }
 
