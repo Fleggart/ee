@@ -15,7 +15,21 @@ repositories {
         name 'GTNH Maven'
         url 'https://nexus.gtnewhorizons.com/repository/public/'
     }
+    maven {
+         name 'cursemaven'
+         url "https://www.cursemaven.com"
+    }
 }
+
+
+
+dependencies {
+    implementation "curse.maven:applecore-224472:2724383"
+}
+
+
+
+
 
 version = "1.0.0"
 base {
