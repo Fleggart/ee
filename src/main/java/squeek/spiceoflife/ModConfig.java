@@ -11,16 +11,14 @@ public class ModConfig
     /*
      * SERVER
      */
+    public static int LUNCHBOX_SLOTS = 6;
+    public static int LUNCHBAG_SLOTS = 3;
     public static int FOOD_CONTAINERS_MAX_STACKSIZE = 2;
-    private static final String FOOD_CONTAINERS_MAX_STACKSIZE_NAME = "food.containers.max.stacksize";
-    private static final int FOOD_CONTAINERS_MAX_STACKSIZE_DEFAULT = 2;
 
     /*
      * CLIENT
      */
     public static boolean LEFT_CLICK_OPENS_FOOD_CONTAINERS = false;
-    private static final String LEFT_CLICK_OPENS_FOOD_CONTAINERS_NAME = "left.click.opens.food.containers";
-    private static final boolean LEFT_CLICK_OPENS_FOOD_CONTAINERS_DEFAULT = false;
 
     /*
      * ITEMS
@@ -33,11 +31,17 @@ public class ModConfig
         config = new Configuration(file);
         load();
 
-        FOOD_CONTAINERS_MAX_STACKSIZE = config.get("server", FOOD_CONTAINERS_MAX_STACKSIZE_NAME, 
-            FOOD_CONTAINERS_MAX_STACKSIZE_DEFAULT).getInt();
+        LUNCHBOX_SLOTS = config.get("server", "lunchbox.slots", 6, "午餐盒的格子数量 (1-27)").getInt();
+        LUNCHBAG_SLOTS = config.get("server", "lunchbag.slots", 3, "午餐袋的格子数量 (1-18)").getInt();
+        FOOD_CONTAINERS_MAX_STACKSIZE = config.get("server", "food.containers.max.stacksize", 2, "每个格子最大堆叠数").getInt();
 
-        LEFT_CLICK_OPENS_FOOD_CONTAINERS = config.get("client", LEFT_CLICK_OPENS_FOOD_CONTAINERS_NAME, 
-            LEFT_CLICK_OPENS_FOOD_CONTAINERS_DEFAULT).getBoolean();
+        LEFT_CLICK_OPENS_FOOD_CONTAINERS = config.get("client", "left.click.opens.food.containers", false, "左键点击空气开关容器").getBoolean();
+
+        // 限制范围
+        if (LUNCHBOX_SLOTS < 1) LUNCHBOX_SLOTS = 1;
+        if (LUNCHBOX_SLOTS > 27) LUNCHBOX_SLOTS = 27;
+        if (LUNCHBAG_SLOTS < 1) LUNCHBAG_SLOTS = 1;
+        if (LUNCHBAG_SLOTS > 18) LUNCHBAG_SLOTS = 18;
 
         save();
     }
