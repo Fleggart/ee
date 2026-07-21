@@ -1,95 +1,52 @@
 package squeek.spiceoflife.inventory;
 
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.InventoryPlayer;
-import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
-import squeek.spiceoflife.helpers.GuiHelper;
+import net.minecraftforge.fml.client.FMLClientHandler;
+import net.minecraftforge.fml.common.FMLCommonHandler;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import squeek.spiceoflife.items.ItemFoodContainer;
 
 import javax.annotation.Nonnull;
-import java.util.UUID;
 
-public class ContainerFoodContainer extends ContainerGeneric
+public class FoodContainerInventory extends NBTInventory
 {
-    protected FoodContainerInventory foodContainerInventory;
-    public int slotsX;
-    public int slotsY;
+    protected ItemFoodContainer itemFoodContainer;
+    @Nonnull protected ItemStack itemStackFoodContainer = ItemStack.EMPTY;
 
-    public ContainerFoodContainer(InventoryPlayer playerInventory, FoodContainerInventory foodContainerInventory)
+    public FoodContainerInventory(ItemFoodContainer itemFoodContainer, @Nonnull ItemStack itemStackFoodContainer)
     {
-        super(foodContainerInventory);
-        this.foodContainerInventory = foodContainerInventory;
+        super(itemFoodContainer);
+        this.itemFoodContainer = itemFoodContainer;
+        this.itemStackFoodContainer = itemStackFoodContainer;
 
-        slotsX = (int) (GuiHelper.STANDARD_GUI_WIDTH / 2f - (inventory.getSizeInventory() * GuiHelper.STANDARD_SLOT_WIDTH / 2f));
-        slotsY = 19;
-
-        this.addSlotsOfType(SlotFiltered.class, inventory, slotsX, slotsY);
-        this.addPlayerInventorySlots(playerInventory, 51);
-    }
-
-    public void setFoodContainerItemStack(@Nonnull ItemStack itemStack)
-    {
-        foodContainerInventory.itemStackFoodContainer = itemStack;
+        readFromNBTData(itemFoodContainer.getInventoryTag(itemStackFoodContainer));
     }
 
     @Override
-    protected void addHotbarSlot(InventoryPlayer playerInventory, int slotNum, int x, int y)
+    public void onInventoryChanged()
     {
-        ItemStack stackInSlot = playerInventory.getStackInSlot(slotNum);
-        if (isFoodContainerWithUUID(stackInSlot, getUUID()))
+        if (FMLCommonHandler.instance().getEffectiveSide() == Side.CLIENT)
         {
-            addSlotToContainer(new SlotLocked(playerInventory, slotNum, x, y));
-        }
-        else
-        {
-            super.addHotbarSlot(playerInventory, slotNum, x, y);
-        }
-    }
-
-    @Nonnull
-    public ItemStack getItemStack()
-    {
-        return foodContainerInventory.itemStackFoodContainer;
-    }
-
-    @Override
-    public void onContainerClosed(EntityPlayer player)
-    {
-        if (player.world.isRemote)
-        {
-            setFoodContainerItemStack(findFoodContainerWithUUID(getUUID()));
+            findMatchingClientItemStack();
         }
 
-        if (!getItemStack().isEmpty())
-            ((ItemFoodContainer) getItemStack().getItem()).setIsOpen(getItemStack(), false);
-
-        super.onContainerClosed(player);
+        this.writeToNBTData(itemFoodContainer.getInventoryTag(itemStackFoodContainer));
+        super.onInventoryChanged();
     }
 
-    @Nonnull
-    public ItemStack findFoodContainerWithUUID(UUID uuid)
+    @SideOnly(Side.CLIENT)
+    public void findMatchingClientItemStack()
     {
-        for (Object inventorySlotObj : this.inventorySlots)
+        EntityPlayer player = FMLClientHandler.instance().getClient().player;
+        if (player.openContainer != null && player.openContainer instanceof ContainerFoodContainer)
         {
-            Slot inventorySlot = (Slot) inventorySlotObj;
-            ItemStack itemStack = inventorySlot.getStack();
-            if (isFoodContainerWithUUID(itemStack, uuid))
-            {
-                return itemStack;
-            }
+            ContainerFoodContainer openFoodContainer = (ContainerFoodContainer) player.openContainer;
+            ItemStack matchingFoodContainer = openFoodContainer.findFoodContainerWithUUID(
+                itemFoodContainer.getUUID(itemStackFoodContainer));
+            if (!matchingFoodContainer.isEmpty())
+                itemStackFoodContainer = matchingFoodContainer;
         }
-        return ItemStack.EMPTY;
-    }
-
-    public boolean isFoodContainerWithUUID(@Nonnull ItemStack itemStack, UUID uuid)
-    {
-        return !itemStack.isEmpty() && itemStack.getItem() instanceof ItemFoodContainer && 
-            ((ItemFoodContainer) itemStack.getItem()).getUUID(itemStack).equals(uuid);
-    }
-
-    public UUID getUUID()
-    {
-        return foodContainerInventory.itemFoodContainer.getUUID(getItemStack());
     }
 }
