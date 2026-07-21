@@ -104,15 +104,21 @@ public class ItemFoodContainer extends Item implements INBTInventoryHaver
         return getOrInitBaseTag(stack).getUniqueId(TAG_UUID);
     }
 
-    private NBTTagCompound getOrInitBaseTag(@Nonnull ItemStack stack)
+    // 改为 public，供 FoodContainerInventory 访问
+    public NBTTagCompound getOrInitBaseTag(@Nonnull ItemStack stack)
     {
-        NBTTagCompound tag = stack.getOrCreateTag();
+        NBTTagCompound tag = stack.getTagCompound();
+        if (tag == null) {
+            tag = new NBTTagCompound();
+            stack.setTagCompound(tag);
+        }
         if (!tag.hasKey(TAG_UUID))
             tag.setUniqueId(TAG_UUID, UUID.randomUUID());
         return tag;
     }
 
-    private NBTTagCompound getInventoryTag(@Nonnull ItemStack stack)
+    // 改为 public，供 FoodContainerInventory 访问
+    public NBTTagCompound getInventoryTag(@Nonnull ItemStack stack)
     {
         NBTTagCompound tag = getOrInitBaseTag(stack);
         if (!tag.hasKey(TAG_INVENTORY))
