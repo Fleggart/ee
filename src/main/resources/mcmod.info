@@ -1,0 +1,16 @@
+[
+{
+  "modid": "spiceoflife",
+  "name": "The Spice of Life",
+  "description": "Encourages dietary variety through diminishing returns.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "http://www.minecraftforum.net/topic/2688857-",
+  "updateUrl": "",
+  "authorList": ["squeek"],
+  "credits": "",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
