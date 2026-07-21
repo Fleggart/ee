@@ -5,7 +5,6 @@ import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.creativetab.CreativeTabs;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.EnumAction;
@@ -47,13 +46,13 @@ import java.util.UUID;
 
 public class ItemFoodContainer extends Item implements INBTInventoryHaver
 {
-    public int numSlots;
-    public String itemName;
-    public static final Random random = new Random();
-
-    public static final String TAG_KEY_INVENTORY = "Inventory";
-    public static final String TAG_KEY_OPEN = "Open";
-    public static final String TAG_KEY_UUID = "UUID";
+    public static final String TAG_INVENTORY = "Inventory";
+    public static final String TAG_OPEN = "Open";
+    public static final String TAG_UUID = "UUID";
+    
+    public final int numSlots;
+    public final String itemName;
+    private static final Random RANDOM = new Random();
 
     public ItemFoodContainer(String itemName, int numSlots)
     {
@@ -61,8 +60,8 @@ public class ItemFoodContainer extends Item implements INBTInventoryHaver
         this.itemName = itemName;
         this.numSlots = numSlots;
         setMaxStackSize(1);
-        setRegistryName(this.itemName);
-        setTranslationKey(ModInfo.MODID.toLowerCase(Locale.ROOT) + '.' + this.itemName);
+        setRegistryName(itemName);
+        setTranslationKey(ModInfo.MODID + '.' + itemName);
         setCreativeTab(CreativeTabs.MISC);
         MinecraftForge.EVENT_BUS.register(this);
     }
@@ -70,110 +69,82 @@ public class ItemFoodContainer extends Item implements INBTInventoryHaver
     @SideOnly(Side.CLIENT)
     public void registerModels()
     {
-        final ModelResourceLocation closed = new ModelResourceLocation(getRegistryName(), "inventory");
-        final ModelResourceLocation openEmpty = new ModelResourceLocation(getRegistryName() + "_open_empty", "inventory");
-        final ModelResourceLocation openFull = new ModelResourceLocation(getRegistryName() + "_open_full", "inventory");
-
-        ModelLoader.registerItemVariants(this, closed, openEmpty, openFull);
-
-        ModelLoader.setCustomMeshDefinition(this, new ItemMeshDefinition()
-        {
-            @Override
-            public ModelResourceLocation getModelLocation(ItemStack itemStack)
-            {
-                if (isOpen(itemStack))
-                {
-                    return isEmpty(itemStack) ? openEmpty : openFull;
-                }
-                return closed;
+        ModelLoader.setCustomMeshDefinition(this, stack -> {
+            if (isOpen(stack)) {
+                return isEmpty(stack) ? 
+                    new ModelResourceLocation(getRegistryName() + "_open_empty", "inventory") :
+                    new ModelResourceLocation(getRegistryName() + "_open_full", "inventory");
             }
+            return new ModelResourceLocation(getRegistryName(), "inventory");
         });
     }
 
-    public boolean isEmpty(@Nonnull ItemStack itemStack)
+    public boolean isEmpty(@Nonnull ItemStack stack)
     {
-        return NBTInventory.isInventoryEmpty(getInventoryTag(itemStack));
+        return NBTInventory.isInventoryEmpty(getInventoryTag(stack));
     }
 
-    public boolean isFull(@Nonnull ItemStack itemStack)
+    public boolean isFull(@Nonnull ItemStack stack)
     {
-        return getInventory(itemStack).isInventoryFull();
+        return getInventory(stack).isInventoryFull();
     }
 
-    public boolean isOpen(@Nonnull ItemStack itemStack)
+    public boolean isOpen(@Nonnull ItemStack stack)
     {
-        return itemStack.hasTagCompound() && itemStack.getTagCompound().getBoolean(TAG_KEY_OPEN);
+        return stack.hasTagCompound() && stack.getTagCompound().getBoolean(TAG_OPEN);
     }
 
-    public void setIsOpen(@Nonnull ItemStack itemStack, boolean isOpen)
+    public void setIsOpen(@Nonnull ItemStack stack, boolean open)
     {
-        NBTTagCompound baseTag = getOrInitBaseTag(itemStack);
-        baseTag.setBoolean(TAG_KEY_OPEN, isOpen);
+        getOrInitBaseTag(stack).setBoolean(TAG_OPEN, open);
     }
 
-    public UUID getUUID(@Nonnull ItemStack itemStack)
+    public UUID getUUID(@Nonnull ItemStack stack)
     {
-        return UUID.fromString(getOrInitBaseTag(itemStack).getString(TAG_KEY_UUID));
+        return getOrInitBaseTag(stack).getUniqueId(TAG_UUID);
     }
 
-    public NBTTagCompound getOrInitBaseTag(@Nonnull ItemStack itemStack)
+    private NBTTagCompound getOrInitBaseTag(@Nonnull ItemStack stack)
     {
-        if (!itemStack.hasTagCompound())
-            itemStack.setTagCompound(new NBTTagCompound());
-
-        NBTTagCompound baseTag = itemStack.getTagCompound();
-
-        if (baseTag != null && !baseTag.hasKey(TAG_KEY_UUID))
-            baseTag.setString(TAG_KEY_UUID, UUID.randomUUID().toString());
-
-        return baseTag;
+        NBTTagCompound tag = stack.getOrCreateTag();
+        if (!tag.hasKey(TAG_UUID))
+            tag.setUniqueId(TAG_UUID, UUID.randomUUID());
+        return tag;
     }
 
-    public NBTTagCompound getInventoryTag(@Nonnull ItemStack itemStack)
+    private NBTTagCompound getInventoryTag(@Nonnull ItemStack stack)
     {
-        NBTTagCompound baseTag = getOrInitBaseTag(itemStack);
-
-        if (!baseTag.hasKey(TAG_KEY_INVENTORY))
-            baseTag.setTag(TAG_KEY_INVENTORY, new NBTTagCompound());
-
-        return baseTag.getCompoundTag(TAG_KEY_INVENTORY);
+        NBTTagCompound tag = getOrInitBaseTag(stack);
+        if (!tag.hasKey(TAG_INVENTORY))
+            tag.setTag(TAG_INVENTORY, new NBTTagCompound());
+        return tag.getCompoundTag(TAG_INVENTORY);
     }
 
-    public FoodContainerInventory getInventory(@Nonnull ItemStack itemStack)
+    public FoodContainerInventory getInventory(@Nonnull ItemStack stack)
     {
-        return new FoodContainerInventory(this, itemStack);
+        return new FoodContainerInventory(this, stack);
     }
 
-    public void tryDumpFoodInto(@Nonnull ItemStack itemStack, IItemHandler inventory, EntityPlayer player)
+    public void tryDumpFoodInto(@Nonnull ItemStack stack, IItemHandler target, EntityPlayer player)
     {
-        FoodContainerInventory foodContainerInventory = getInventory(itemStack);
-        for (int slotNum = 0; slotNum < foodContainerInventory.getSizeInventory(); slotNum++)
-        {
-            ItemStack stackInSlot = foodContainerInventory.getStackInSlot(slotNum);
-
-            if (stackInSlot.isEmpty())
-                continue;
-
-            stackInSlot = InventoryHelper.insertStackIntoInventory(stackInSlot, inventory);
-            foodContainerInventory.setInventorySlotContents(slotNum, stackInSlot);
+        FoodContainerInventory inv = getInventory(stack);
+        for (int i = 0; i < inv.getSizeInventory(); i++) {
+            ItemStack slot = inv.getStackInSlot(i);
+            if (!slot.isEmpty()) {
+                inv.setInventorySlotContents(i, InventoryHelper.insertStackIntoInventory(slot, target));
+            }
         }
     }
 
-    public void tryPullFoodFrom(@Nonnull ItemStack itemStack, IItemHandlerModifiable inventory, EntityPlayer player)
+    public void tryPullFoodFrom(@Nonnull ItemStack stack, IItemHandlerModifiable source, EntityPlayer player)
     {
-        FoodContainerInventory foodContainerInventory = getInventory(itemStack);
-        for (int slotNum = 0; slotNum < inventory.getSlots(); slotNum++)
-        {
-            ItemStack stackInSlot = inventory.getStackInSlot(slotNum);
-
-            if (stackInSlot.isEmpty() || !FoodHelper.isFood(stackInSlot))
-                continue;
-
-            ItemStack remainder = InventoryHelper.insertStackIntoInventoryOnce(stackInSlot, foodContainerInventory.getItemHandler());
-            inventory.setStackInSlot(slotNum, remainder);
-            
-            if (foodContainerInventory.isInventoryFull())
-                break;
+        FoodContainerInventory inv = getInventory(stack);
+        for (int i = 0; i < source.getSlots(); i++) {
+            ItemStack slot = source.getStackInSlot(i);
+            if (!slot.isEmpty() && FoodHelper.isFood(slot)) {
+                source.setStackInSlot(i, InventoryHelper.insertStackIntoInventoryOnce(slot, inv.getItemHandler()));
+                if (inv.isInventoryFull()) break;
+            }
         }
     }
 
@@ -188,39 +159,24 @@ public class ItemFoodContainer extends Item implements INBTInventoryHaver
     }
 
     @Override
-    public void onUpdate(ItemStack itemStack, World world, Entity ownerEntity, int par4, boolean par5)
-    {
-        super.onUpdate(itemStack, world, ownerEntity, par4, par5);
-    }
-
-    @Override
     @SideOnly(Side.CLIENT)
-    public void addInformation(ItemStack itemStack, @Nullable World world, List<String> toolTip, ITooltipFlag tooltipFlag)
+    public void addInformation(ItemStack stack, @Nullable World world, List<String> tooltip, ITooltipFlag flag)
     {
-        super.addInformation(itemStack, world, toolTip, tooltipFlag);
-
-        String openCloseLineColor = TextFormatting.GRAY.toString();
-        if (isOpen(itemStack))
-        {
-            toolTip.add(openCloseLineColor + I18n.format("spiceoflife.tooltip.to.close.food.container"));
-        }
-        else
-            toolTip.add(openCloseLineColor + I18n.format("spiceoflife.tooltip.to.open.food.container"));
+        super.addInformation(stack, world, tooltip, flag);
+        String key = isOpen(stack) ? "spiceoflife.tooltip.to.close.food.container" : "spiceoflife.tooltip.to.open.food.container";
+        tooltip.add(TextFormatting.GRAY + I18n.format(key));
     }
 
     @Override
     @Nonnull
     public EnumActionResult onItemUseFirst(EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX, float hitY, float hitZ, EnumHand hand)
     {
-        ItemStack itemStack = player.getHeldItem(hand);
-        if (!world.isRemote && isOpen(itemStack))
-        {
-            IItemHandler inventoryHit = InventoryHelper.getInventoryAtLocation(world, pos);
-            if (inventoryHit != null && inventoryHit instanceof IItemHandlerModifiable)
-            {
-                tryDumpFoodInto(itemStack, inventoryHit, player);
-                tryPullFoodFrom(itemStack, (IItemHandlerModifiable) inventoryHit, player);
-
+        ItemStack stack = player.getHeldItem(hand);
+        if (!world.isRemote && isOpen(stack)) {
+            IItemHandler target = InventoryHelper.getInventoryAtLocation(world, pos);
+            if (target instanceof IItemHandlerModifiable) {
+                tryDumpFoodInto(stack, target, player);
+                tryPullFoodFrom(stack, (IItemHandlerModifiable) target, player);
                 return EnumActionResult.SUCCESS;
             }
         }
@@ -229,143 +185,97 @@ public class ItemFoodContainer extends Item implements INBTInventoryHaver
 
     @Override
     @Nonnull
-    public EnumAction getItemUseAction(ItemStack itemStack)
+    public EnumAction getItemUseAction(ItemStack stack)
     {
-        if (canBeEatenFrom(itemStack))
-            return EnumAction.EAT;
-        else
-            return EnumAction.NONE;
+        return canBeEatenFrom(stack) ? EnumAction.EAT : EnumAction.NONE;
     }
 
     @Override
     @Nonnull
     public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player, @Nonnull EnumHand hand)
     {
-        ItemStack itemStack = player.getHeldItem(hand);
-        if (player.isSneaking())
-        {
-            setIsOpen(itemStack, !isOpen(itemStack));
-            return new ActionResult<ItemStack>(EnumActionResult.SUCCESS, itemStack);
+        ItemStack stack = player.getHeldItem(hand);
+        if (player.isSneaking()) {
+            setIsOpen(stack, !isOpen(stack));
+            return new ActionResult<>(EnumActionResult.SUCCESS, stack);
         }
-        else if (canPlayerEatFrom(player, itemStack))
-        {
+        if (canPlayerEatFrom(player, stack)) {
             player.setActiveHand(hand);
-            return new ActionResult<ItemStack>(EnumActionResult.SUCCESS, itemStack);
+            return new ActionResult<>(EnumActionResult.SUCCESS, stack);
         }
-        else if (!isOpen(itemStack) && hand == EnumHand.MAIN_HAND)
-        {
-            GuiHelper.openGuiOfItemStack(player, itemStack);
-            setIsOpen(itemStack, true);
-            return new ActionResult<ItemStack>(EnumActionResult.SUCCESS, itemStack);
+        if (!isOpen(stack) && hand == EnumHand.MAIN_HAND) {
+            GuiHelper.openGuiOfItemStack(player, stack);
+            setIsOpen(stack, true);
+            return new ActionResult<>(EnumActionResult.SUCCESS, stack);
         }
         return super.onItemRightClick(world, player, hand);
     }
 
     @Override
-    public boolean onEntitySwing(EntityLivingBase entityLiving, ItemStack stack)
+    public boolean onEntitySwing(EntityLivingBase entity, ItemStack stack)
     {
-        if (entityLiving.world.isRemote && ModConfig.LEFT_CLICK_OPENS_FOOD_CONTAINERS && MiscHelper.isMouseOverNothing())
-        {
+        if (entity.world.isRemote && ModConfig.LEFT_CLICK_OPENS_FOOD_CONTAINERS && MiscHelper.isMouseOverNothing()) {
             setIsOpen(stack, !isOpen(stack));
             return true;
         }
-        return super.onEntitySwing(entityLiving, stack);
+        return super.onEntitySwing(entity, stack);
     }
 
     @Override
-    public int getMaxItemUseDuration(ItemStack itemStack)
+    public int getMaxItemUseDuration(ItemStack stack)
     {
         return 32;
     }
 
     @Override
     @Nonnull
-    public ItemStack onItemUseFinish(@Nonnull ItemStack itemStack, World world, EntityLivingBase entityLiving)
+    public ItemStack onItemUseFinish(@Nonnull ItemStack stack, World world, EntityLivingBase entity)
     {
-        if (entityLiving instanceof EntityPlayer)
-        {
-            EntityPlayer player = (EntityPlayer) entityLiving;
-            FoodContainerInventory inventory = getInventory(itemStack);
-            IItemHandlerModifiable itemHandler = inventory.getItemHandler();
-
-            // 找饱食度 × 饥饿值 最高的食物
+        if (entity instanceof EntityPlayer) {
+            EntityPlayer player = (EntityPlayer) entity;
+            IItemHandlerModifiable handler = getInventory(stack).getItemHandler();
+            
             int bestSlot = -1;
             float bestValue = -1;
-
-            for (int i = 0; i < itemHandler.getSlots(); i++) {
-                ItemStack stack = itemHandler.getStackInSlot(i);
-                if (!stack.isEmpty() && FoodHelper.isFood(stack)) {
-                    float value = getFoodSaturationValue(stack);
+            
+            for (int i = 0; i < handler.getSlots(); i++) {
+                ItemStack food = handler.getStackInSlot(i);
+                if (!food.isEmpty() && FoodHelper.isFood(food)) {
+                    float value = getFoodValue(food);
                     if (value > bestValue) {
                         bestValue = value;
                         bestSlot = i;
                     }
                 }
             }
-
+            
             if (bestSlot != -1) {
-                ItemStack foodToEat = itemHandler.getStackInSlot(bestSlot);
-                ItemStack result = foodToEat.onItemUseFinish(world, player);
-                result = ForgeEventFactory.onItemUseFinish(player, foodToEat, 32, result);
-
-                if (result.isEmpty() || result.getCount() <= 0)
-                    result = ItemStack.EMPTY;
-
-                itemHandler.setStackInSlot(bestSlot, result);
+                ItemStack food = handler.getStackInSlot(bestSlot);
+                ItemStack result = food.onItemUseFinish(world, player);
+                result = ForgeEventFactory.onItemUseFinish(player, food, 32, result);
+                handler.setStackInSlot(bestSlot, result.isEmpty() ? ItemStack.EMPTY : result);
             }
         }
-        return super.onItemUseFinish(itemStack, world, entityLiving);
+        return super.onItemUseFinish(stack, world, entity);
     }
 
-    /**
-     * 计算食物的综合价值 = 饥饿值 × 实际饱食度
-     * 值越高表示食物越好
-     */
-    private float getFoodSaturationValue(ItemStack itemStack)
+    private float getFoodValue(ItemStack stack)
     {
-        if (itemStack.isEmpty() || !(itemStack.getItem() instanceof ItemFood))
-            return 0;
-        
-        ItemFood food = (ItemFood) itemStack.getItem();
-        int hunger = food.getHealAmount(itemStack);
-        float saturationModifier = food.getSaturationModifier(itemStack);
-        float saturation = hunger * saturationModifier * 2;
-        
+        if (!(stack.getItem() instanceof ItemFood)) return 0;
+        ItemFood food = (ItemFood) stack.getItem();
+        int hunger = food.getHealAmount(stack);
+        float saturation = hunger * food.getSaturationModifier(stack) * 2;
         return hunger * saturation;
     }
 
-    @Override
-    public int getSizeInventory()
-    {
-        return numSlots;
-    }
-
-    @Override
-    public String getInvName(NBTInventory inventory)
-    {
-        return this.getTranslationKey() + ".name";
-    }
-
-    @Override
-    public boolean hasCustomName(NBTInventory inventory)
-    {
-        return false;
-    }
-
-    @Override
-    public int getInventoryStackLimit(NBTInventory inventory)
-    {
-        return ModConfig.FOOD_CONTAINERS_MAX_STACKSIZE;
-    }
-
-    @Override
-    public void onInventoryChanged(NBTInventory inventory)
-    {
-    }
-
-    @Override
-    public boolean isItemValidForSlot(NBTInventory inventory, int slotNum, @Nonnull ItemStack itemStack)
-    {
-        return FoodHelper.isFood(itemStack) && FoodHelper.isDirectlyEdible(itemStack);
+    // ============ INBTInventoryHaver 接口 ============
+    
+    @Override public int getSizeInventory() { return numSlots; }
+    @Override public String getInvName(NBTInventory inv) { return getTranslationKey() + ".name"; }
+    @Override public boolean hasCustomName(NBTInventory inv) { return false; }
+    @Override public int getInventoryStackLimit(NBTInventory inv) { return ModConfig.FOOD_CONTAINERS_MAX_STACKSIZE; }
+    @Override public void onInventoryChanged(NBTInventory inv) {}
+    @Override public boolean isItemValidForSlot(NBTInventory inv, int slot, @Nonnull ItemStack stack) {
+        return FoodHelper.isFood(stack) && FoodHelper.isDirectlyEdible(stack);
     }
 }
