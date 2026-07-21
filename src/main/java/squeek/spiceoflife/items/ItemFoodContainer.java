@@ -10,6 +10,7 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.EnumAction;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemFood;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ActionResult;
@@ -26,15 +27,12 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
-import squeek.applecore.api.food.FoodValues;
-import squeek.applecore.api.food.IEdible;
 import squeek.spiceoflife.ModConfig;
 import squeek.spiceoflife.ModInfo;
 import squeek.spiceoflife.helpers.FoodHelper;
 import squeek.spiceoflife.helpers.GuiHelper;
 import squeek.spiceoflife.helpers.InventoryHelper;
 import squeek.spiceoflife.helpers.MiscHelper;
-import squeek.spiceoflife.helpers.MovementHelper;
 import squeek.spiceoflife.inventory.ContainerFoodContainer;
 import squeek.spiceoflife.inventory.FoodContainerInventory;
 import squeek.spiceoflife.inventory.INBTInventoryHaver;
@@ -47,7 +45,8 @@ import java.util.Locale;
 import java.util.Random;
 import java.util.UUID;
 
-public class ItemFoodContainer extends Item implements INBTInventoryHaver, IEdible
+// 移除 implements IEdible
+public class ItemFoodContainer extends Item implements INBTInventoryHaver
 {
     public int numSlots;
     public String itemName;
@@ -64,7 +63,6 @@ public class ItemFoodContainer extends Item implements INBTInventoryHaver, IEdib
         this.numSlots = numSlots;
         setMaxStackSize(1);
         setRegistryName(this.itemName);
-        // 修复：使用 setTranslationKey 替代 setUnlocalizedName
         setTranslationKey(ModInfo.MODID.toLowerCase(Locale.ROOT) + '.' + this.itemName);
         setCreativeTab(CreativeTabs.MISC);
         MinecraftForge.EVENT_BUS.register(this);
@@ -193,7 +191,6 @@ public class ItemFoodContainer extends Item implements INBTInventoryHaver, IEdib
     @Override
     public void onUpdate(ItemStack itemStack, World world, Entity ownerEntity, int par4, boolean par5)
     {
-        // 跳跃掉落功能已禁用
         super.onUpdate(itemStack, world, ownerEntity, par4, par5);
     }
 
@@ -324,7 +321,6 @@ public class ItemFoodContainer extends Item implements INBTInventoryHaver, IEdib
     @Override
     public String getInvName(NBTInventory inventory)
     {
-        // 修复：使用 getTranslationKey 替代 getUnlocalizedName
         return this.getTranslationKey() + ".name";
     }
 
@@ -351,9 +347,5 @@ public class ItemFoodContainer extends Item implements INBTInventoryHaver, IEdib
         return FoodHelper.isFood(itemStack) && FoodHelper.isDirectlyEdible(itemStack);
     }
 
-    @Override
-    public FoodValues getFoodValues(@Nonnull ItemStack itemStack)
-    {
-        return new FoodValues(1, 0.5f);
-    }
+    // 删除 getFoodValues() 方法，不再需要
 }
