@@ -24,7 +24,7 @@ repositories {
 
 
 dependencies {
-    implementation "curse.maven:applecore-224472:2724383"
+    implementation "curse.maven:applecore-224472:2969118"
 }
 
 
