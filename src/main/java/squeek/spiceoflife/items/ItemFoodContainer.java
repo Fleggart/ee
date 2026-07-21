@@ -45,7 +45,6 @@ import java.util.Locale;
 import java.util.Random;
 import java.util.UUID;
 
-// 移除 implements IEdible
 public class ItemFoodContainer extends Item implements INBTInventoryHaver
 {
     public int numSlots;
@@ -289,27 +288,50 @@ public class ItemFoodContainer extends Item implements INBTInventoryHaver
             FoodContainerInventory inventory = getInventory(itemStack);
             IItemHandlerModifiable itemHandler = inventory.getItemHandler();
 
-            int slotWithFood = -1;
+            // 找饱食度 × 饥饿值 最高的食物
+            int bestSlot = -1;
+            float bestValue = -1;
+
             for (int i = 0; i < itemHandler.getSlots(); i++) {
                 ItemStack stack = itemHandler.getStackInSlot(i);
                 if (!stack.isEmpty() && FoodHelper.isFood(stack)) {
-                    slotWithFood = i;
-                    break;
+                    float value = getFoodSaturationValue(stack);
+                    if (value > bestValue) {
+                        bestValue = value;
+                        bestSlot = i;
+                    }
                 }
             }
 
-            if (slotWithFood != -1) {
-                ItemStack foodToEat = itemHandler.getStackInSlot(slotWithFood);
+            if (bestSlot != -1) {
+                ItemStack foodToEat = itemHandler.getStackInSlot(bestSlot);
                 ItemStack result = foodToEat.onItemUseFinish(world, player);
                 result = ForgeEventFactory.onItemUseFinish(player, foodToEat, 32, result);
 
                 if (result.isEmpty() || result.getCount() <= 0)
                     result = ItemStack.EMPTY;
 
-                itemHandler.setStackInSlot(slotWithFood, result);
+                itemHandler.setStackInSlot(bestSlot, result);
             }
         }
         return super.onItemUseFinish(itemStack, world, entityLiving);
+    }
+
+    /**
+     * 计算食物的综合价值 = 饥饿值 × 实际饱食度
+     * 值越高表示食物越好
+     */
+    private float getFoodSaturationValue(ItemStack itemStack)
+    {
+        if (itemStack.isEmpty() || !(itemStack.getItem() instanceof ItemFood))
+            return 0;
+        
+        ItemFood food = (ItemFood) itemStack.getItem();
+        int hunger = food.getHealAmount(itemStack);
+        float saturationModifier = food.getSaturationModifier(itemStack);
+        float saturation = hunger * saturationModifier * 2;
+        
+        return hunger * saturation;
     }
 
     @Override
@@ -346,6 +368,4 @@ public class ItemFoodContainer extends Item implements INBTInventoryHaver
     {
         return FoodHelper.isFood(itemStack) && FoodHelper.isDirectlyEdible(itemStack);
     }
-
-    // 删除 getFoodValues() 方法，不再需要
 }
