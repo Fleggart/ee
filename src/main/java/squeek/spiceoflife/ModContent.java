@@ -1,56 +1,35 @@
 package squeek.spiceoflife;
 
-import net.minecraftforge.common.config.Configuration;
+import net.minecraft.item.Item;
+import net.minecraftforge.client.event.ModelRegistryEvent;
+import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+import squeek.spiceoflife.items.ItemFoodContainer;
 
-import java.io.File;
-
-public class ModConfig
+@Mod.EventBusSubscriber
+public class ModContent
 {
-	private static Configuration config;
+    public static ItemFoodContainer lunchBox;
+    public static ItemFoodContainer lunchBag;
 
-	/*
-	 * SERVER
-	 */
-	public static int FOOD_CONTAINERS_MAX_STACKSIZE = 2;
-	private static final String FOOD_CONTAINERS_MAX_STACKSIZE_NAME = "food.containers.max.stacksize";
-	private static final int FOOD_CONTAINERS_MAX_STACKSIZE_DEFAULT = 2;
-	private static final String FOOD_CONTAINERS_MAX_STACKSIZE_COMMENT = "The maximum stacksize per slot in a food container";
+    @SubscribeEvent
+    public static void registerItems(RegistryEvent.Register<Item> event)
+    {
+        lunchBox = new ItemFoodContainer(ModConfig.ITEM_LUNCH_BOX_NAME, 6);
+        event.getRegistry().register(lunchBox);
 
-	/*
-	 * CLIENT
-	 */
-	public static boolean LEFT_CLICK_OPENS_FOOD_CONTAINERS = false;
-	private static final String LEFT_CLICK_OPENS_FOOD_CONTAINERS_NAME = "left.click.opens.food.containers";
-	private static final boolean LEFT_CLICK_OPENS_FOOD_CONTAINERS_DEFAULT = false;
-	private static final String LEFT_CLICK_OPENS_FOOD_CONTAINERS_COMMENT = "If true, left clicking the air while holding a food container will open it";
+        lunchBag = new ItemFoodContainer(ModConfig.ITEM_LUNCH_BAG_NAME, 3);
+        event.getRegistry().register(lunchBag);
+    }
 
-	/*
-	 * ITEMS
-	 */
-	public static final String ITEM_LUNCH_BOX_NAME = "lunchbox";
-	public static final String ITEM_LUNCH_BAG_NAME = "lunchbag";
-
-	public static void init(File file)
-	{
-		config = new Configuration(file);
-		load();
-
-		FOOD_CONTAINERS_MAX_STACKSIZE = config.get("server", FOOD_CONTAINERS_MAX_STACKSIZE_NAME, 
-			FOOD_CONTAINERS_MAX_STACKSIZE_DEFAULT, FOOD_CONTAINERS_MAX_STACKSIZE_COMMENT).getInt();
-
-		LEFT_CLICK_OPENS_FOOD_CONTAINERS = config.get("client", LEFT_CLICK_OPENS_FOOD_CONTAINERS_NAME, 
-			LEFT_CLICK_OPENS_FOOD_CONTAINERS_DEFAULT, LEFT_CLICK_OPENS_FOOD_CONTAINERS_COMMENT).getBoolean();
-
-		save();
-	}
-
-	public static void save()
-	{
-		config.save();
-	}
-
-	public static void load()
-	{
-		config.load();
-	}
+    @SideOnly(Side.CLIENT)
+    @SubscribeEvent
+    public static void registerModels(ModelRegistryEvent event)
+    {
+        lunchBox.registerModels();
+        lunchBag.registerModels();
+    }
 }
