@@ -66,17 +66,31 @@ public class ItemFoodContainer extends Item implements INBTInventoryHaver
         MinecraftForge.EVENT_BUS.register(this);
     }
 
+
+    
+    
+    
+    
+    
     @SideOnly(Side.CLIENT)
     public void registerModels()
     {
+        ModelLoader.registerItemVariants(
+           this,
+           new ModelResourceLocation(getRegistryName(), "inventory"),
+           new ModelResourceLocation(getRegistryName() + "_open_empty", "inventory"),
+           new ModelResourceLocation(getRegistryName() + "_open_full", "inventory")
+        );
+
         ModelLoader.setCustomMeshDefinition(this, stack -> {
-            if (isOpen(stack)) {
-                return isEmpty(stack) ? 
-                    new ModelResourceLocation(getRegistryName() + "_open_empty", "inventory") :
-                    new ModelResourceLocation(getRegistryName() + "_open_full", "inventory");
-            }
-            return new ModelResourceLocation(getRegistryName(), "inventory");
-        });
+          if (isOpen(stack)) {
+              return isEmpty(stack)
+                  ? new ModelResourceLocation(getRegistryName() + "_open_empty", "inventory")
+                  : new ModelResourceLocation(getRegistryName() + "_open_full", "inventory");
+          }
+
+          return new ModelResourceLocation(getRegistryName(), "inventory");
+      });
     }
 
     public boolean isEmpty(@Nonnull ItemStack stack)
